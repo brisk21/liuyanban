@@ -1,22 +1,28 @@
 ﻿<?php
-class input{
-	function post($key){
-		if(isset($_POST[$key])){
-			$value = $_POST[$key];
+class Input{
+	function post($name){
+		if( array_key_exists($name,$_POST) == true){
+			$value = $_POST[$name];
+			return $value;
 		}else{
-			$value = NULL;
-		}				
-		$execValue = strip_tags($value);
-		return $execValue;
-	}	
-	function get($key){
-		if(isset($_GET[$key])){
-			$value = $_GET[$key];
+			return null;
+		}
+	}
+	function get($name){
+		if( array_key_exists($name,$_GET) == true){
+			$value = $_GET[$name];
+			return $value;
 		}else{
-			$value = NULL;
-		}		
-		$execValue = strip_tags($value);
-		return $execValue;
+			return null;
+		}
+	}
+	function session($name){
+		if( array_key_exists($name,$_SESSION) == true){
+			$value = $_SESSION[$name];
+			return $value;
+		}else{
+			return null;
+		}
 	}
 	function cookie($key){
 		if(isset($_COOKIE[$key])){
@@ -27,5 +33,6 @@ class input{
 		$execValue = strip_tags($value);
 		return $execValue;
 	}
-}
+} 
 
+?>

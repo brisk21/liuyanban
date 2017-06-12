@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>上传语音</title>
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" media="all" />
+	<script type="text/javascript" src="js/forbidden.js"></script>
+	<style type="text/css">
+	body{
+		margin-top:10px;
+	}
+	</style>	
+</head>
+<body>
+	<div class="container-fluid ">		
+		<form action="upload.php"  method="post" enctype="multipart/form-data">
+			<input type="hidden" value="" name="miling" id="miling" />
+			<label for="file">语音文件:</label><span id="msg" style="color:red"></span><br>
+			<input type="file" name="file" class="form-control" id="file" /> 
+			<br />
+			<input type="submit" class="btn btn-success " name="submit" value="上传" />
+			<a href="index.php" class="btn btn-warning pull-left " style="margin-right:15px">返回</a>
+		</form>		
+		
+	</div>
+	<script type="text/javascript">
+		window.onload=function(){			
+			var getml = window.prompt("语音留言的密令是什么？目前管理可以做到！");
+			var ml = document.getElementById('miling').value=getml;			
+			var msg = document.getElementById('msg').innerHTML="密令错误！";			
+		}
+	</script>
+</body>
+</html>

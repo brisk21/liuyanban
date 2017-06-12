@@ -1,141 +1,151 @@
 ﻿<?php
+session_start();
 include ('config.php');
 include ('input.class.php');
-$input = new input();
-
-
-include ('db.class.php');
-$db = new db($dbhost,$dbuser,$dbpasswd,$dbname);
 include ('page.class.php');
-
-$uid =(int) $input->cookie('id');
-if($uid > 0){
-	$usql = "SELECT * FROM adminuser WHERE id='$uid'";
-	$result = $db->query($usql);
-	$user = $result->fetch_array();
-	
-}
-//删除留言
-$action = $input->get('action');
-if($action == 'delete' && $uid > 0){
-	$id = (int)$input->get('id');
-	if($id < 1){
-		echo "请选择要删除的留言ID";
-		exit;
-	}
-	$sql = "DELETE FROM messages WHERE id='$id'";
-	$result = $db->query($sql);
-	if(result){
-		header("location:index.php");
-		exit;
-	}else{
-		echo "删除失败，请联系高级管理员修复。";
-		exit;
-	}
-	
-}
-
-
-
-//当前页数
+/*******显示留言内容*********/
+$input =new Input();
+/*************显示分页效果********************/
+//每页显示条数
+$pageTotal = 8;
 $p = $input->get('p');
 if($p < 1){
 	$p = 1;
 }
-$offset = ($p-1) * $pageTotal;//数据偏移量
-
-
+//数据偏移量
+$offset = ($p-1) * $pageTotal;
 //获取数据总量
-$countSql = "SELECT COUNT(*) as total FROM messages";
-$result = $db->query($countSql);
+$countSql = "SELECT COUNT(*) as total FROM lyb where state=1 ";
+$result = $mysqli->query($countSql);
 $row = $result->fetch_array();
-$total = $row['total'];//获取数据总量
-
-/*********************************/
+//获取数据总量
+$total = $row['total'];
 $page = new page($total,$pageTotal,$p);
-
-//编写查询的SQL语句，获取所有数据
-$sql = "SELECT * FROM messages order by id desc limit $offset,$pageTotal";
+$sql = "SELECT * FROM lyb where state=1 and chose=1 order by id desc limit $offset,$pageTotal";
 //执行语句，并将结果赋值到$mysqli_result这个变量
-$mysqli_result = $db->query($sql);
-
-
-
-$rows = array();//声明一个数组变量
+$mysqli_result = $mysqli->query($sql);
+//声明一个数组变量
+$rows = array();
 while($row = $mysqli_result->fetch_array()){
 	$rows[] = $row;
 }
-?>
+/***********admin***************/
+$sid =(int) $input->session('sid');
+if($input->session('sid')){
+	$sql = "SELECT * FROM lybadmin WHERE  sid='{$sid}'";
+	$result = $mysqli->query($sql);
+	$user = $result->fetch_array(MYSQLI_ASSOC);	
+}
 
-<!DOCTYPE HTML>
-<html lang="en-US">
+?>
+<!doctype html>
+<html lang="zh-CN">
 <head>
-	<meta charset="UTF-8">
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="keywords" content="留言板，php留言板，php留言">
 	<title>留言板</title>
-	<link rel="stylesheet" type="text/css" href="lyb.css" media="all" />
+	<!--<link rel="stylesheet" type="text/css" href="http://weibingsheng.cn/blog/public/bootstrap/css/bootstrap.css"/>-->
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css"/>	
+	<style type="text/css">
+		body{background:rgba(113, 34, 112, 0.11)}.container{margin-top: 5px;}.input-message input{padding:10px;margin:5px;margin-left:0}.panel{margin-top:10px}#checkCode{font-family:Arial;font-style:italic;color:#00f;background:rgba(180,199,180,.76);font-size:30px;border:0;letter-spacing:3px;font-weight:bolder;cursor:pointer;width:100px;height:30px;text-align:center;vertical-align:middle}.btn{margin:0}.info{font-size:10px;overflow:hidden}.reply{background: rgba(230, 226, 235, 0.35);font-size:12px;}.choses span{margin-left:10px;}.content{word-wrap: break-word;}
+	</style>
 </head>
-<body>
-	<div id="main">
-		<div class="write">
-			<form action="savemessage.php" method="post">
-				<textarea name="content" id="liuyan" class="liuyan" cols="30" rows="10">输入留言内容</textarea><br/>
-				<input type="text" class="user" name="user" value="请输入用户名" />
-				<input class="btn" type="submit" value="提交留言" />
-			</form>
+<body onload="createCode();">
+	<div class="container" id="main">
+		<div class="row  input-message">		
+			<div class="form-group col-xs-12">
+				<form action="save.php" method="post" id="Form">
+					<textarea name="content" class="form-control" id="content" placeholder="请输入留言内容" rows="5"></textarea>
+					<input type="text" name="user"class="form-control" id="username" placeholder="请输入留言标题" />
+					<input type="text" name="Emails"class="form-control" id="Emails" onblur="checkmail()" placeholder="邮箱地址(选填)" />
+					<input type="text" id="inputCode" onblur="validateCode();" placeholder="请输入验证码" />
+					<spane id="checkCode" onclick="createCode();">验证码</spane>
+					<div class="input-group choses">
+						<span><input type="radio" calss="chose" name="showhidden" checked="true" value="1"/>显示到留言区<span>
+						<span><input type="radio" class="chose" name="showhidden" value="0"  id="choseHidden" />不显示到留言区</span>
+					</div>					
+					<input type="submit"  class="btn  btn-info pull-right" value="发表" onfocus="checkInput();" />							
+				</form>
+				
+			</div>			
 		</div>
-			<div class="messages">
-			<?php
-			//while($row = $mysqli_result->fetch_array()){
-			  foreach($rows as $row){
-				  $createtime = $row['createtime'];
-				  $datetime = date("Y-m-d H:i:s",$createtime);
-			?>
-				<div class="message">
-					<div class="info">
-						<span class="user"><?php echo $row['uname'];?>(<?php echo $row['id']?>)</span>
-						<span class="delete">
-						<?php
-						if($uid > 0){
-						?>
-							<a href="index.php?action=delete&id=<?php echo $row['id'];?>">删除</a>
-						<?php
-						}
-						?>
-						</span>
-						<span class="time"><?php echo  $datetime; ?></span>
+		<div class="row show">
+			<div class="col-xs-12">
+				<?php 				
+				
+				foreach($rows as $value){if(!$value['content'] == '' && $value['chose'] == 1 || $input -> session('sid')) :?>
+				<div class="panel panel-info">
+					<div class="panel-heading">
+						<?php echo $value['user'];?>
+					</div>
+					<div class="panel-body content">
+						<?php if($value['email'] == "lanlan@brisk.com"):?>
+						<audio controls="controls" class="form-control">
+						  <source src="/lyb2<?php echo $value['content'];?> " type="audio/wav">
+						  <source src="/lyb2<?php echo $value['content'];?> "type="audio/mpeg">
+							您的浏览器不支持H5音频输出。
+						</audio>					
+						<?php endif;?>
+						<?php if($value['email'] !== "lanlan@brisk.com") echo $value['content']; ?>
+						<?php if($input->session('sid')) :?>
+						<span class="glyphicon glyphicon-remove"></span>  <a onclick="return confirm('确定删除该留言吗？')"  href="delete.php?id=<?php echo $value['id'];?>">删除</a>
+						<form action="reply.php?id=<?php echo $value['id'];?>" method="post" >
+							<input name="replies" id="reply"  ></input>							
+							<input type="submit" class="btn btn-info" value="回复" />
+						</form>	
+						<?php endif;?>		
 						
+						<?php if(!$value['reply'] == ''){?>
+						<div class="well-sm  reply">	
+						<?php	echo 'Reply:'.$value['reply'];?>
+						</div> 
+						<?php };?>
+							
 					</div>
-					<div class="content">
-						<?php echo $row['contents'];?>
+					<div class="panel-footer info">
+						<span class="pull-left">标题:<?php echo $value['user'];?></span>
+						<span class="pull-right"><?php echo  date('Y-m-d H:i',$value['intime']);?></span>
 					</div>
-				</div>
-			<?php
-				}
-			?>
-		
+					
+				</div>			
+				<?php endif;}; ?>
+				
+			</div>
 		</div>
-		<div class="adminer">
-		<?php 
-		if($uid > 0){
-		?>
-			欢迎：<?php echo $user['user']; ?>,<a href="login.php?action=loginout">退出登录</a>
-		<?php
-		}else{
-		?>
-			<a href="login.php">管理员登陆</a>
-		<?php
-		}
-		?>
-		
-		
+		<div class="pagination text-center">
+			<li><?php echo $page->showpage();?></li>
 		</div>
-		<div class="pages">
-			 <div class="page">
-			 <?php
-			 echo $page->showPage();exit;
-			 ?>		 
-			 </div>			
-		</div>		
+		<div class="well text-center">
+		<?php if($input->session('sid')){?>
+			<div><a href="check.php">审核留言</a></div>
+			<p>兰兰</p>
+			欢迎：<?php $admin = 'login'; echo $user['suser']; ?>,<a href="login.php?action=loginout">退出登录</a>
+			
+		<?php }else{ ?>
+			<input type="button"  value="管理员登录" onclick="login();" />
+		<?php } ?>			
+			<label for="record" style="margin-left:15px"></label>
+			<input type="button"  value="发送语音" onclick="record();" />
+		</div>
+		
 	</div>
+	<script src="js/main.js"></script>
+	<script src="js/code.js"></script>
+	<script type="text/javascript">
+	function login(){		
+		window.location.href="login.php";
+	}	
+	function record(){
+		window.location.href="record.html";
+	}
+	function checkmail(){
+		var mailCheck = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/;	
+		var oemail = document.getElementById('Emails').value;
+		if(!mailCheck.test(oemail)){		
+			return alert(oemail+"此邮箱格式不对哦，请确认重新输入");
+		}
+	}
+	</script>
 </body>
 </html>
